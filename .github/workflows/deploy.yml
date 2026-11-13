@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Conferir secrets obrigatórios
+        id: conferir
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -36,12 +37,18 @@ jobs:
           for v in VPS_HOST VPS_USER VPS_SSH_KEY; do
             [ -n "${!v}" ] || faltando="$faltando $v"
           done
-          if [ -n "$faltando" ]; then
-            echo "::error::Cadastre os secrets:$faltando (veja o README, seção Deploy)."
+          if [ "$faltando" = " VPS_HOST VPS_USER VPS_SSH_KEY" ]; then
+            echo "::notice::Deploy ainda não configurado (nenhum secret da VPS cadastrado). Nada foi publicado. Veja o README, seção Deploy."
+            echo "configurado=nao" >> "$GITHUB_OUTPUT"
+          elif [ -n "$faltando" ]; then
+            echo "::error::Faltam os secrets:$faltando (veja o README, seção Deploy)."
             exit 1
+          else
+            echo "configurado=sim" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Preparar SSH
+        if: steps.conferir.outputs.configurado == 'sim'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
@@ -60,6 +67,7 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
       - name: Enviar o código
+        if: steps.conferir.outputs.configurado == 'sim'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -70,6 +78,7 @@ jobs:
             "cat > /tmp/nfe-brinquedo-$GITHUB_SHA.tar.gz" < /tmp/release.tar.gz
 
       - name: Instalar, configurar e reiniciar
+        if: steps.conferir.outputs.configurado == 'sim'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
