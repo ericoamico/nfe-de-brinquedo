@@ -37,7 +37,7 @@ export function Vitrine() {
                   <input type="hidden" name="produto" value={p.id} />
                   <input type="hidden" name="quantidade" value="1" />
                   <button class="botao largo" type="submit">
-                    Adicionar <span class="vh">{p.nome} </span>ao carrinho
+                    Adicionar<span class="vh"> {p.nome}</span> ao carrinho
                   </button>
                 </form>
               </div>

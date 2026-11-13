@@ -35,7 +35,7 @@ export function iniciarLoja(config: ConfigLoja, opcoes: OpcoesLoja = {}): LojaEm
     urlBase: config.urlAutorizadora,
     certPem: certificado.certPem,
     chavePem: certificado.chavePem,
-    caPem: config.caPem,
+    caPem: config.caServidorPem,
     timeoutMs: config.timeoutMs,
     tpAmb: config.tpAmb,
   });

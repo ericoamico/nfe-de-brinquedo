@@ -11,7 +11,13 @@ export interface ConfigLoja {
   banco: string;
   pfx: string | Uint8Array;
   pfxSenha: string;
+  /** AC de brinquedo (cadeia do certificado da loja). */
   caPem: string;
+  /**
+   * Em quem confiar ao conectar na autorizadora. Padrão: a AC de brinquedo (opção 1, TLS
+   * mútuo direto). `undefined` = ACs públicas do sistema (opção 2, atrás de proxy com HTTPS público).
+   */
+  caServidorPem: string | undefined;
   urlAutorizadora: string;
   timeoutMs: number;
   tpAmb: 1 | 2;
@@ -64,6 +70,10 @@ export function configDoAmbiente(env = process.env): ConfigLoja {
     pfx,
     pfxSenha: env.LOJA_PFX_SENHA ?? "brinquedo",
     caPem: readFileSync(env.LOJA_CA ?? `${pasta}/raiz.crt`, "utf8"),
+    caServidorPem:
+      env.LOJA_CA_SERVIDOR === "sistema"
+        ? undefined
+        : readFileSync(env.LOJA_CA_SERVIDOR || env.LOJA_CA || `${pasta}/raiz.crt`, "utf8"),
     urlAutorizadora: (env.LOJA_AUTORIZADORA_URL ?? "https://localhost:8443").replace(/\/$/, ""),
     timeoutMs: Number(env.LOJA_TIMEOUT_MS ?? 10_000),
     tpAmb: env.LOJA_TP_AMB === "1" ? 1 : 2,

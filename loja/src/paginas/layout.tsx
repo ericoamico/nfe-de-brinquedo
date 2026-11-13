@@ -27,8 +27,8 @@ function Layout(p: PropsLayout) {
         <a class="pular" href="#conteudo">
           Pular para o conteúdo
         </a>
-        <p class="faixa">Entrega econômica grátis em compras a partir de R$ 299,00</p>
         <header class="cabecalho">
+          <p class="faixa">Entrega econômica grátis em compras a partir de R$ 299,00</p>
           <div class="interno">
             <a class="logo" href="/">
               <span class="marca" aria-hidden="true">

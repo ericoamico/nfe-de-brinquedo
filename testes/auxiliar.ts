@@ -95,6 +95,7 @@ export function configLojaTeste(c: CertificadosTeste, urlAutorizadora: string, e
     pfx: c.pfx,
     pfxSenha: c.senha,
     caPem: readFileSync(c.raiz, "utf8"),
+    caServidorPem: readFileSync(c.raiz, "utf8"),
     urlAutorizadora,
     timeoutMs: 1500,
     tpAmb: 2,

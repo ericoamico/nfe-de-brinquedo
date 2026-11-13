@@ -15,7 +15,8 @@ export interface OpcoesCliente {
   urlBase: string;
   certPem: string;
   chavePem: string;
-  caPem: string;
+  /** AC que assina o certificado do servidor; sem ela, usa as ACs do sistema. */
+  caPem?: string;
   timeoutMs: number;
   tpAmb: number;
 }
@@ -32,7 +33,7 @@ export class ClienteAutorizadora {
         headers: { "content-type": contentTypeSoap(servico) },
         body: envelopeRequisicao(servico, mensagem),
         signal: AbortSignal.timeout(timeoutMs),
-        tls: { cert: this.o.certPem, key: this.o.chavePem, ca: this.o.caPem },
+        tls: { cert: this.o.certPem, key: this.o.chavePem, ...(this.o.caPem ? { ca: this.o.caPem } : {}) },
       } as RequestInit);
     } catch (e) {
       const err = e as Error & { code?: string };

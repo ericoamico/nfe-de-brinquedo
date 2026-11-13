@@ -18,7 +18,7 @@ img,svg{max-width:100%}
 .vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .pular{position:absolute;left:-9999px;top:.5rem;background:var(--papel);color:var(--tinta);padding:.6rem 1rem;border-radius:8px;z-index:20}
 .pular:focus{left:.5rem}
-.faixa{background:var(--tinta);color:var(--fundo);font-size:.9rem;text-align:center;padding:.35rem 1rem}
+.faixa{background:var(--tinta);color:var(--fundo);font-size:.9rem;text-align:center;padding:.35rem 1rem;margin:0}
 .cabecalho{background:var(--papel);border-bottom:1px solid var(--borda)}
 .cabecalho .interno{max-width:72rem;margin:0 auto;padding:.9rem 1rem;display:flex;flex-wrap:wrap;gap:.75rem 2rem;align-items:center;justify-content:space-between}
 .logo{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.3rem;color:var(--tinta);text-decoration:none}
