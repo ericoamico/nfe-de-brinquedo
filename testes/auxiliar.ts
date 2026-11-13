@@ -63,3 +63,26 @@ export function gerarOutraAC(): CertificadosTeste {
     servidorCrt: join(dir, "autorizadora.crt"), servidorKey: join(dir, "autorizadora.key"),
   };
 }
+
+import { readFileSync } from "node:fs";
+import type { ConfigAutorizadora } from "../autorizadora/src/config";
+
+/** Configuração de autorizadora para teste: portas livres, banco em memória, caos desligado. */
+export function configAutorizadoraTeste(c: CertificadosTeste, extra: Partial<ConfigAutorizadora> = {}): ConfigAutorizadora {
+  return {
+    portaWs: 0,
+    hostWs: "127.0.0.1",
+    portaPublica: 0,
+    hostPublico: "127.0.0.1",
+    mtlsModo: "direto",
+    certPem: readFileSync(c.servidorCrt, "utf8"),
+    chavePem: readFileSync(c.servidorKey, "utf8"),
+    caPem: readFileSync(c.raiz, "utf8"),
+    banco: ":memory:",
+    tpAmb: 2,
+    cUF: 99,
+    loteAssincronoMs: 200,
+    caos: { ativo: false, probabilidade: 0, atrasoMaxMs: 2000 },
+    ...extra,
+  };
+}

@@ -30,7 +30,7 @@ export function dadosNotaTeste(extra: Partial<DadosNota> = {}): DadosNota {
     serie: 1,
     numero: 1,
     cNF: "12345678",
-    emissao: new Date("2026-11-13T15:00:00Z"),
+    emissao: new Date(Date.now() - 60_000),
     tpAmb: 2,
     pedido: "1001",
     ...extra,
