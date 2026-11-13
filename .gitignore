@@ -1,0 +1,17 @@
+node_modules/
+.env
+*.env.local
+# Certificados e chaves NUNCA vão para o repositório
+ac/saida/
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+# Dados de execução
+dados/
+*.sqlite
+*.sqlite-*
+*.db
+saida-emails/
+.DS_Store

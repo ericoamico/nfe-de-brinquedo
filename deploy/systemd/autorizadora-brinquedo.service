@@ -1,0 +1,39 @@
+# Autorizadora de brinquedo (Receita de Brinquedo).
+# Copie para /etc/systemd/system/ e rode: sudo systemctl daemon-reload && sudo systemctl enable --now autorizadora-brinquedo
+[Unit]
+Description=Autorizadora de brinquedo (Receita de Brinquedo) - sem valor fiscal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nfe
+Group=nfe
+WorkingDirectory=/opt/nfe-brinquedo/atual
+EnvironmentFile=/etc/nfe-brinquedo/autorizadora.env
+EnvironmentFile=-/etc/nfe-brinquedo/segredos.env
+Environment=BUN_RUNTIME_TRANSPILER_CACHE_PATH=0
+ExecStart=/usr/local/bin/bun autorizadora/src/index.ts
+Restart=on-failure
+RestartSec=3
+
+# Dados (SQLite) em /var/lib/nfe-brinquedo
+StateDirectory=nfe-brinquedo
+StateDirectoryMode=0750
+
+# Endurecimento
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# Para escutar em porta abaixo de 1024 (ex.: 443 direto), descomente:
+# AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target
