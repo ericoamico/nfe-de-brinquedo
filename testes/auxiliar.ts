@@ -48,3 +48,18 @@ export function gerarCertificadoIntruso(): { key: string; cert: string } {
   if (r.exitCode !== 0) throw new Error(r.stderr.toString());
   return { key: join(dir, "i.key"), cert: join(dir, "i.crt") };
 }
+
+/** Uma segunda AC de brinquedo, independente da primeira (para testar "AC desconhecida"). */
+export function gerarOutraAC(): CertificadosTeste {
+  const dir = mkdtempSync(join(tmpdir(), "outra-ac-"));
+  const r = Bun.spawnSync(["bash", join(RAIZ_PROJETO, "ac/gerar-ac.sh")], {
+    env: { ...process.env, AC_SAIDA: dir, AC_SENHA_PFX: SENHA_TESTE },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (r.exitCode !== 0) throw new Error(r.stderr.toString());
+  return {
+    dir, raiz: join(dir, "raiz.crt"), pfx: join(dir, "loja.pfx"), senha: SENHA_TESTE,
+    servidorCrt: join(dir, "autorizadora.crt"), servidorKey: join(dir, "autorizadora.key"),
+  };
+}
