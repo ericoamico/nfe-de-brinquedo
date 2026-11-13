@@ -3,6 +3,7 @@ import { criarLog } from "../../comum/log";
 import { criarAppLoja } from "./app";
 import { abrirBanco } from "./banco";
 import { type ConfigLoja, configDoAmbiente } from "./config";
+import { gerarDanfe } from "./danfe";
 import { ClienteAutorizadora } from "./nfe/cliente";
 import { Emissor } from "./nfe/emissor";
 
@@ -20,6 +21,7 @@ export function iniciarLoja(config: ConfigLoja, opcoes: { fila?: boolean } = {})
     throw new Error(`o CNPJ do certificado (${certificado.cnpj}) é diferente do CNPJ do emitente (${config.emitente.cnpj})`);
   }
   const banco = abrirBanco(config.banco);
+  const danfe = (xmlProc: string) => gerarDanfe(xmlProc, { urlConsulta: config.urlConsulta });
   const cliente = new ClienteAutorizadora({
     urlBase: config.urlAutorizadora,
     certPem: certificado.certPem,
@@ -35,10 +37,12 @@ export function iniciarLoja(config: ConfigLoja, opcoes: { fila?: boolean } = {})
     config,
     log,
     aposAutorizar: async (pedidoId) => {
-      log.info("nota.pronta_para_entrega", { pedidoId });
+      const nota = banco.nota(pedidoId)!;
+      const pdf = await danfe(nota.xml_proc!);
+      log.info("nota.danfe_gerado", { pedidoId, bytes: pdf.length });
     },
   });
-  const app = criarAppLoja({ config, banco, emissor, log });
+  const app = criarAppLoja({ config, banco, emissor, log, gerarDanfe: danfe });
   const servidor = Bun.serve({ port: config.porta, hostname: config.host, fetch: app.fetch, development: false });
   if (opcoes.fila !== false) emissor.iniciarFila();
   const url = `http://${config.host}:${servidor.port}`;
