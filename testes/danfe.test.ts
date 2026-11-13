@@ -4,15 +4,8 @@ import { carregarPfx } from "../comum/certificado";
 import { emitentePadrao } from "../loja/src/config";
 import { gerarDanfe } from "../loja/src/danfe";
 import { montarNFe, montarNfeProc } from "../loja/src/nfe/montar";
-import { gerarCertificadosDeTeste } from "./auxiliar";
+import { gerarCertificadosDeTeste, textoDoPdf } from "./auxiliar";
 import { dadosNotaTeste } from "./fixtures";
-
-/** Extrai o texto do PDF com o pdftotext, se estiver instalado (poppler-utils). */
-export function textoDoPdf(pdf: Uint8Array): string | null {
-  if (!Bun.which("pdftotext")) return null;
-  const r = Bun.spawnSync(["pdftotext", "-layout", "-", "-"], { stdin: pdf });
-  return r.exitCode === 0 ? r.stdout.toString() : null;
-}
 
 describe("DANFE", async () => {
   const certs = gerarCertificadosDeTeste();

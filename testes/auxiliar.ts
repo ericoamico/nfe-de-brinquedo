@@ -1,7 +1,8 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-
+import type { ConfigAutorizadora } from "../autorizadora/src/config";
+import { type ConfigLoja, emitentePadrao } from "../loja/src/config";
 export const RAIZ_PROJETO = resolve(import.meta.dir, "..");
 export const SENHA_TESTE = "senha-de-teste";
 
@@ -64,9 +65,6 @@ export function gerarOutraAC(): CertificadosTeste {
   };
 }
 
-import { readFileSync } from "node:fs";
-import type { ConfigAutorizadora } from "../autorizadora/src/config";
-
 /** Configuração de autorizadora para teste: portas livres, banco em memória, caos desligado. */
 export function configAutorizadoraTeste(c: CertificadosTeste, extra: Partial<ConfigAutorizadora> = {}): ConfigAutorizadora {
   return {
@@ -85,4 +83,78 @@ export function configAutorizadoraTeste(c: CertificadosTeste, extra: Partial<Con
     caos: { ativo: false, probabilidade: 0, atrasoMaxMs: 2000 },
     ...extra,
   };
+}
+
+export function configLojaTeste(c: CertificadosTeste, urlAutorizadora: string, extra: Partial<ConfigLoja> = {}): ConfigLoja {
+  return {
+    porta: 0,
+    host: "127.0.0.1",
+    urlPublica: "http://loja.teste",
+    urlConsulta: "http://consulta.teste/consulta",
+    banco: ":memory:",
+    pfx: c.pfx,
+    pfxSenha: c.senha,
+    caPem: readFileSync(c.raiz, "utf8"),
+    urlAutorizadora,
+    timeoutMs: 1500,
+    tpAmb: 2,
+    serie: 1,
+    esperaCheckoutMs: 8000,
+    intervaloFilaMs: 60_000,
+    tentativasRecibo: 5,
+    intervaloReciboMs: 100,
+    cookieSeguro: false,
+    emitente: emitentePadrao(),
+    ...extra,
+  };
+}
+
+/** Navegador mínimo: guarda o cookie de sessão e não segue redirecionamentos sozinho. */
+export class Navegador {
+  private cookie = "";
+  constructor(private base: string) {}
+  async ir(caminho: string, form?: Record<string, string>): Promise<Response> {
+    const r = await fetch(this.base + caminho, {
+      method: form ? "POST" : "GET",
+      redirect: "manual",
+      headers: {
+        ...(this.cookie ? { cookie: this.cookie } : {}),
+        ...(form ? { "content-type": "application/x-www-form-urlencoded" } : {}),
+      },
+      body: form ? new URLSearchParams(form).toString() : undefined,
+    });
+    const sc = r.headers.get("set-cookie");
+    if (sc) this.cookie = sc.split(";")[0]!;
+    return r;
+  }
+  /** Faz o pedido e segue o redirecionamento final. */
+  async seguir(r: Response): Promise<Response> {
+    const destino = r.headers.get("location");
+    if (!destino) return r;
+    return this.ir(destino.replace(this.base, ""));
+  }
+}
+
+export const CLIENTE_TESTE = {
+  nome: "Maria da Silva",
+  email: "maria@example.com",
+  cpf: "529.982.247-25",
+  telefone: "(51) 99999-9999",
+  cep: "90000-000",
+  logradouro: "Rua das Flores",
+  numero: "12",
+  complemento: "",
+  bairro: "Jardim",
+  cidade: "Porto Alegre",
+  uf: "RS",
+  entrega: "economica",
+  pagamento: "pix",
+  parcelas: "1",
+};
+
+/** Extrai o texto do PDF com o pdftotext, se estiver instalado (poppler-utils). */
+export function textoDoPdf(pdf: Uint8Array): string | null {
+  if (!Bun.which("pdftotext")) return null;
+  const r = Bun.spawnSync(["pdftotext", "-layout", "-", "-"], { stdin: pdf });
+  return r.exitCode === 0 ? r.stdout.toString() : null;
 }
