@@ -1,0 +1,109 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Nunca dois deploys ao mesmo tempo; o segundo espera o primeiro terminar.
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  testes:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Publicar na VPS
+    needs: testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: producao
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir secrets obrigatórios
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          faltando=""
+          for v in VPS_HOST VPS_USER VPS_SSH_KEY; do
+            [ -n "${!v}" ] || faltando="$faltando $v"
+          done
+          if [ -n "$faltando" ]; then
+            echo "::error::Cadastre os secrets:$faltando (veja o README, seção Deploy)."
+            exit 1
+          fi
+
+      - name: Preparar SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::VPS_KNOWN_HOSTS não cadastrado: confiando na chave que a VPS apresentar agora (menos seguro)."
+            ssh-keyscan -p "${VPS_PORT:-22}" -H "$VPS_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Enviar o código
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          git archive --format=tar.gz -o /tmp/release.tar.gz "$GITHUB_SHA"
+          ssh -i ~/.ssh/id_deploy -p "${VPS_PORT:-22}" -o BatchMode=yes "$VPS_USER@$VPS_HOST" \
+            "cat > /tmp/nfe-brinquedo-$GITHUB_SHA.tar.gz" < /tmp/release.tar.gz
+
+      - name: Instalar, configurar e reiniciar
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          # Pasta da aplicação na VPS (variável do repositório, opcional).
+          APP_DIR: ${{ vars.APP_DIR }}
+          CONF_DIR: ${{ vars.CONF_DIR }}
+          # Certificados (opcionais): se vazios, a VPS usa os que já estão lá
+          # (por exemplo, gerados com ac/gerar-ac.sh direto na VPS).
+          AC_RAIZ_CRT_B64: ${{ secrets.AC_RAIZ_CRT_B64 }}
+          LOJA_PFX_B64: ${{ secrets.LOJA_PFX_B64 }}
+          LOJA_PFX_SENHA: ${{ secrets.LOJA_PFX_SENHA }}
+          AUTORIZADORA_CRT_B64: ${{ secrets.AUTORIZADORA_CRT_B64 }}
+          AUTORIZADORA_KEY_B64: ${{ secrets.AUTORIZADORA_KEY_B64 }}
+          AUT_PROXY_SEGREDO: ${{ secrets.AUT_PROXY_SEGREDO }}
+          # E-mail (opcionais até você escolher o serviço).
+          EMAIL_ADAPTADOR: ${{ vars.EMAIL_ADAPTADOR }}
+          EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORTA: ${{ secrets.SMTP_PORTA }}
+          SMTP_SEGURO: ${{ secrets.SMTP_SEGURO }}
+          SMTP_USUARIO: ${{ secrets.SMTP_USUARIO }}
+          SMTP_SENHA: ${{ secrets.SMTP_SENHA }}
+        run: |
+          # Os valores vão pela entrada padrão do ssh (não aparecem na linha de comando da VPS).
+          {
+            for v in GITHUB_SHA APP_DIR CONF_DIR AC_RAIZ_CRT_B64 LOJA_PFX_B64 LOJA_PFX_SENHA AUTORIZADORA_CRT_B64 \
+                     AUTORIZADORA_KEY_B64 AUT_PROXY_SEGREDO EMAIL_ADAPTADOR EMAIL_REMETENTE SMTP_HOST SMTP_PORTA \
+                     SMTP_SEGURO SMTP_USUARIO SMTP_SENHA; do
+              printf 'export %s=%q\n' "$v" "${!v}"
+            done
+            cat deploy/remoto.sh
+          } | ssh -i ~/.ssh/id_deploy -p "${VPS_PORT:-22}" -o BatchMode=yes "$VPS_USER@$VPS_HOST" 'bash -s'
+
+      - name: Limpar chave
+        if: always()
+        run: rm -f ~/.ssh/id_deploy

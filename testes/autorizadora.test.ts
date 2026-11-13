@@ -246,6 +246,11 @@ describe("modo proxy (o proxy faz o TLS mútuo e repassa o certificado)", () => 
     const r = await chamar({ "x-proxy-segredo": "s3gr3do", "x-ssl-client-verify": "SUCCESS", "x-ssl-client-cert": encodeURIComponent(a1.certPem) });
     expect(r.status).toBe(200);
   });
+  test("aceita o formato do Caddy (DER em base64, sem cabeçalhos PEM)", async () => {
+    const der = a1.certPem.replace(/-----(BEGIN|END) CERTIFICATE-----/g, "").replace(/\s+/g, "");
+    const r = await chamar({ "x-proxy-segredo": "s3gr3do", "x-ssl-client-verify": "SUCCESS", "x-ssl-client-cert": der });
+    expect(r.status).toBe(200);
+  });
   test("recusa sem cabeçalhos, com segredo errado ou com certificado de fora", async () => {
     expect((await chamar({})).status).toBe(403);
     expect((await chamar({ "x-proxy-segredo": "x", "x-ssl-client-verify": "SUCCESS", "x-ssl-client-cert": encodeURIComponent(a1.certPem) })).status).toBe(403);

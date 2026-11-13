@@ -1,0 +1,33 @@
+# Caddy - OPÇÃO 2: o Caddy faz o TLS mútuo e repassa o certificado cliente.
+#
+# A autorizadora roda com AUT_MTLS_MODO=proxy, escutando só em 127.0.0.1:8443 sem TLS,
+# e confere os cabeçalhos abaixo (e a cadeia do certificado repassado).
+# A loja usa LOJA_AUTORIZADORA_URL=https://nfe.SEU_DOMINIO e LOJA_CA_SERVIDOR=sistema
+# (o certificado público do Caddy é do Let's Encrypt, não da AC de brinquedo).
+
+loja.{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+}
+
+consulta.{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3001
+}
+
+nfe.{$DOMINIO} {
+	tls {
+		client_auth {
+			mode require_and_verify
+			trust_pool file /etc/nfe-brinquedo/certs/raiz.crt
+		}
+	}
+	reverse_proxy /ws/* 127.0.0.1:8443 {
+		# Sobrescreve qualquer valor que o cliente tenha mandado nesses cabeçalhos.
+		header_up X-SSL-Client-Verify SUCCESS
+		header_up X-SSL-Client-Cert {http.request.tls.client.certificate_der_base64}
+		# Mesmo valor de AUT_PROXY_SEGREDO na autorizadora.
+		header_up X-Proxy-Segredo {$AUT_PROXY_SEGREDO}
+	}
+	respond 404
+}

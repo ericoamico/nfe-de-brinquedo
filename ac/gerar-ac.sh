@@ -16,6 +16,8 @@
 #   AC_SERVIDOR_NOMES   nomes DNS da autorizadora, separados por vírgula (padrão: localhost)
 #   AC_SERVIDOR_IPS     IPs da autorizadora, separados por vírgula (padrão: 127.0.0.1)
 #   AC_DIAS             validade dos certificados finais em dias (padrão: 825)
+#   AC_GRUPO            grupo que pode LER os certificados (ex.: nfe, o usuário dos serviços
+#                       na VPS). A chave da AC raiz (raiz.key) continua só do dono.
 #
 # Opções:
 #   --forcar            recria também a AC raiz (invalida todos os certificados antigos)
@@ -29,6 +31,7 @@ NOME_LOJA="${AC_NOME_LOJA:-LOJA DO ERICO FICTICIA}"
 NOMES="${AC_SERVIDOR_NOMES:-localhost}"
 IPS="${AC_SERVIDOR_IPS:-127.0.0.1}"
 DIAS="${AC_DIAS:-825}"
+GRUPO="${AC_GRUPO:-}"
 FORCAR=0
 [[ "${1:-}" == "--forcar" ]] && FORCAR=1
 
@@ -97,6 +100,13 @@ openssl x509 -req -in "$TMP/autorizadora.csr" -CA raiz.crt -CAkey raiz.key -set_
 
 chmod 600 ./*.key loja.pfx
 chmod 644 raiz.crt loja.crt autorizadora.crt
+if [[ -n "$GRUPO" ]]; then
+  # Os serviços (grupo $GRUPO) leem os certificados; a raiz.key fica só com o dono.
+  chgrp "$GRUPO" . raiz.crt loja.pfx loja.crt loja.key autorizadora.crt autorizadora.key
+  chmod 750 .
+  chmod 640 loja.pfx loja.key autorizadora.key
+  chmod 600 raiz.key
+fi
 
 openssl verify -CAfile raiz.crt loja.crt autorizadora.crt >/dev/null
 echo "Pronto. Arquivos em $SAIDA:"
