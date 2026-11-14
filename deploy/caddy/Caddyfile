@@ -1,0 +1,19 @@
+# Caddy - OPÇÃO 1 (padrão): a autorizadora termina o TLS mútuo ela mesma.
+#
+# O Caddy só publica a loja e a página de consulta (HTTPS com Let's Encrypt automático).
+# O web service da autorizadora NÃO passa pelo Caddy: ele escuta direto na porta 8443
+# (AUT_PORTA_WS) com o certificado da AC de brinquedo e exige certificado cliente.
+#
+# Uso: defina DOMINIO no ambiente do Caddy (ex.: no /etc/default/caddy ou com
+# "sudo systemctl edit caddy" -> Environment=DOMINIO=exemplo.com.br) e copie este
+# arquivo para /etc/caddy/Caddyfile.
+
+loja.{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+}
+
+consulta.{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3001
+}

@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  # Também é chamado pelo workflow de deploy antes de publicar.
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+
+      # pdftotext (poppler) deixa o teste do DANFE conferir o texto do PDF.
+      - name: Instalar poppler-utils
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Checar tipos
+        run: bunx tsc --noEmit
+
+      # Os testes geram uma AC de brinquedo nova (openssl) a cada execução.
+      - name: Rodar testes
+        run: bun test

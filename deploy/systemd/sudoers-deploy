@@ -1,0 +1,3 @@
+# Permite que o usuário de deploy reinicie SÓ estes serviços, sem senha.
+# Instale com: sudo visudo -f /etc/sudoers.d/nfe-brinquedo   (troque "deploy" pelo seu VPS_USER)
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart autorizadora-brinquedo loja-brinquedo, /usr/bin/systemctl restart autorizadora-brinquedo, /usr/bin/systemctl restart loja-brinquedo, /usr/bin/journalctl -u autorizadora-brinquedo -n 30 --no-pager, /usr/bin/journalctl -u loja-brinquedo -n 30 --no-pager

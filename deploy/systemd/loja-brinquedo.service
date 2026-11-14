@@ -1,0 +1,36 @@
+# Loja do Érico (fictícia).
+# Copie para /etc/systemd/system/ e rode: sudo systemctl daemon-reload && sudo systemctl enable --now loja-brinquedo
+[Unit]
+Description=Loja do Erico (ficticia) - notas de brinquedo
+After=network-online.target autorizadora-brinquedo.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nfe
+Group=nfe
+WorkingDirectory=/opt/nfe-brinquedo/atual
+EnvironmentFile=/etc/nfe-brinquedo/loja.env
+EnvironmentFile=-/etc/nfe-brinquedo/segredos.env
+Environment=BUN_RUNTIME_TRANSPILER_CACHE_PATH=0
+ExecStart=/usr/local/bin/bun loja/src/index.ts
+Restart=on-failure
+RestartSec=3
+
+# Dados (SQLite e e-mails do adaptador "arquivo") em /var/lib/nfe-brinquedo
+StateDirectory=nfe-brinquedo
+StateDirectoryMode=0750
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
